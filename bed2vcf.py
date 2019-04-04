@@ -3,7 +3,7 @@
 
 
 '''
-bed_vcf_match
+bed2vcf
 
 Calculate archaic match percent from provided bed file
 '''
@@ -11,9 +11,8 @@ Calculate archaic match percent from provided bed file
 import argparse
 from typing import List
 from itertools import chain
-from bed_vcf_match.read_vcf import import_vcf
+from bed_vcf_match.read_vcf import import_vcf, import_archaic_vcf
 from bed_vcf_match.analyze_bed import read_bed, summarize_region
-import pandas as pd
 import gzip
 import os
 
@@ -21,18 +20,20 @@ import os
 def main():
     args = read_args()
 
-    if not any([args.save_db, args.vcf_output, args.bed_output]):
-        return  # nothing to do
+    individuals = []
+    for bed_file in args.bed_files:
+        in_file = os.path.split(bed_file)
 
-    modern_db = None
+        # assume file is encoded as {indiv}.CODE.type_hap{haplotype}.bed...
+        individuals.append(in_file[1].split('.')[0])
 
-    # load old db
-    if args.load_db:
-        modern_db = pd.read_pickle(args.load_db)
+    print(f'found {len(individuals)} bed files')
 
     # read in modern vcfs
-    print('reading modern vcfs', flush=True)
+    print(f'reading {len(args.modern_vcfs)} modern vcfs', flush=True)
+    modern_db = None
     for vcf in args.modern_vcfs:
+        print(os.path.split(vcf)[1], flush=True)
         if os.path.splitext(vcf)[1] == '.gz':
             reader = gzip.open(vcf, 'rt')
         else:
@@ -40,51 +41,46 @@ def main():
 
         modern_db = import_vcf(reader,
                                modern_db,
-                               check_phasing=True)
+                               check_phasing=True,
+                               individuals=individuals)
         reader.close()
 
-    # save new vcfs
-    if args.save_db:
-        modern_db.to_pickle(args.save_db)
-
-    if not any([args.vcf_output, args.bed_output]):
-        return  # nothing left to do
-
     # read in archaic files
-    print('reading archaic vcfs', flush=True)
-    archaic_dbs = []
+    print(f'reading {len(args.archaic_vcfs)} archaic vcfs', flush=True)
+    archaic_db = [None]
     for vcf in args.archaic_vcfs:
+        print(os.path.split(vcf)[1], flush=True)
         if os.path.splitext(vcf)[1] == '.gz':
             reader = gzip.open(vcf, 'rt')
         else:
             reader = open(vcf)
 
-        archaic_dbs.append(import_vcf(reader,
-                                      check_phasing=True))
+        archaic_db[0] = import_archaic_vcf(reader, archaic_db[0])
         reader.close()
 
-    print('processing bed files', flush=True)
+    print(f'working on {len(args.bed_files)} bed files', flush=True)
     for bed_file in args.bed_files:
         in_file = os.path.split(bed_file)
-        if args.out_dir is None:
-            args.out_dir = in_file[0]
+        print(in_file[1], flush=True)
+        if args.output_dir is None:
+            args.output_dir = in_file[0]
+
         # assume file is encoded as {indiv}.CODE.type_hap{haplotype}.bed...
         tokens = in_file[1].split('.')
         individual = tokens[0]
         haplotype = int(tokens[2][-1])
-        outfile = os.path.join(args.out_dir,
+        outfile = os.path.join(args.output_dir,
                                in_file[1] + ".matched")
 
-        # read in vcf entire vcf as pandas, on cache convert to current format
-        # TODO cache the indiv, haplo merge with archaic
-        with open(outfile) as bed_out:
+        with open(outfile, 'w') as bed_out:
             bed_lines = read_bed(bed_file)
             for line in bed_lines:
                 bed_out.write(summarize_region(line.values[0],
                                                haplotype,
                                                individual,
                                                modern_db,
-                                               *archaic_dbs))
+                                               *archaic_db))
+    print('done!')
 
 
 def read_args(args: List[str] = None) -> argparse.Namespace:
@@ -92,22 +88,9 @@ def read_args(args: List[str] = None) -> argparse.Namespace:
     read in command line arguments, returning namespace object
     '''
     parser = argparse.ArgumentParser(description='Match bed files with vcfs')
-    parser.add_argument('--save_db',
-                        default=None,
-                        help='If set to a valid filename, save the vcf '
-                        'database as a pandas binary object. Valid extensions '
-                        'include pkl, gz, bz2, zip or xz.'
-                        )
-
-    parser.add_argument('--load_db',
-                        default=None,
-                        help='If set to a valid filename, load the vcf '
-                        'database from a previous execution. If set, no vcfs '
-                        'are required for input.'
-                        )
 
     parser.add_argument('--modern_vcfs',
-                        default=None,
+                        default=[],
                         action='append',
                         nargs='*',
                         help='List of modern vcf files to add to database. '
@@ -116,7 +99,7 @@ def read_args(args: List[str] = None) -> argparse.Namespace:
                         )
 
     parser.add_argument('--archaic_vcfs',
-                        default=None,
+                        default=[],
                         action='append',
                         nargs='*',
                         help='List of archaic vcf files to add to database.'

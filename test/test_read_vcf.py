@@ -1,86 +1,70 @@
 from bed_vcf_match import read_vcf
 from io import StringIO
+import numpy as np
 import pytest
 
 
-def test_parse_line():
-    # normal line
-    line = '8\t10346\t.\tA\tG\t.\tPASS\t.\tGT\t1|0\t0|1\t1|1\n'
-    df = read_vcf.parse_line(line, ['UV2', 'UV1', 'UV3'])
-    assert list(df['individual']) ==\
-        ['UV2', 'UV2', 'UV1', 'UV1', 'UV3', 'UV3']
-    assert list(df['haplotype']) ==\
-        [1, 2, 1, 2, 1, 2]
-    assert list(df['variant']) ==\
-        [1, 0, 0, 1, 1, 1]
-    assert list(df['chrom']) ==\
-        [8] * 6
-    assert list(df['pos']) ==\
-        [10346] * 6
-    assert list(df['ref']) ==\
-        ['A'] * 6
-    assert list(df['alt']) ==\
-        ['G'] * 6
-
-    # some unphased
-    line = '3\t1034\t.\tC\tT\t.\tPASS\t.\tGT\t0|0\t0/1\t0|1\n'
-    df = read_vcf.parse_line(line, ['UV2', 'UV1', 'UV3'])
-    assert list(df['individual']) ==\
-        ['UV2', 'UV2', 'UV3', 'UV3']
-    assert list(df['haplotype']) ==\
-        [1, 2, 1, 2]
-    assert list(df['variant']) ==\
-        [0, 0, 0, 1]
-    assert list(df['chrom']) ==\
-        [3] * 4
-    assert list(df['pos']) ==\
-        [1034] * 4
-    assert list(df['ref']) ==\
-        ['C'] * 4
-    assert list(df['alt']) ==\
-        ['T'] * 4
-
-    # multi allelic
-    line = '3\t1034\t.\tCC\tT\t.\tPASS\t.\tGT\t0|0\t0/1\t0|1\n'
-    df = read_vcf.parse_line(line, ['UV2', 'UV1', 'UV3'])
-    assert df is None
-
-    line = '3\t1034\t.\tC\tTT\t.\tPASS\t.\tGT\t0|0\t0/1\t0|1\n'
-    df = read_vcf.parse_line(line, ['UV2', 'UV1', 'UV3'])
-    assert df is None
-
-    # some ./.
-    line = '3\t1034\t.\tC\tT\t.\tPASS\t.\tGT\t./.\t0/1\t0|1\n'
-    df = read_vcf.parse_line(line, ['UV2', 'UV1', 'UV3'])
-    assert list(df['individual']) ==\
-        ['UV2', 'UV2', 'UV3', 'UV3']
-    assert list(df['haplotype']) ==\
-        [1, 2, 1, 2]
-    assert list(df['variant']) ==\
-        [0, 0, 0, 1]
-    assert list(df['chrom']) ==\
-        [3] * 4
-    assert list(df['pos']) ==\
-        [1034] * 4
-    assert list(df['ref']) ==\
-        ['C'] * 4
-    assert list(df['alt']) ==\
-        ['T'] * 4
-
-    # check that all are phased
-    line = '3\t1034\t.\tC\tT\t.\tPASS\t.\tGT\t./.\t0/1\t0|1\n'
-    with pytest.raises(ValueError) as e:
-        df = read_vcf.parse_line(line, ['UV2', 'UV1', 'UV3'], 0)
-    assert 'Unexpected unphased haplotype 0/1 for UV1 on line 0!' in str(e)
-
-    line = '3\t1034\t.\tC\tT\t.\tPASS\t.\tGT\t./.\t0|1\t0|1\n'
-    try:
-        df = read_vcf.parse_line(line, ['UV2', 'UV1', 'UV3'], True)
-    except ValueError:
-        pytest.fail("Unexpected ValueError")
-
-
 def test_import_vcf():
+    # add individual to target
+    vcf = StringIO(
+        '##comment\n'
+        '##comment\n'
+        '#chrom\tpos\tid\tref\talt\tqual\tfilter\tinfor\tformat\tUV1\tUV2\n'
+        '8\t10346\t.\tA\tG\t.\tPASS\t.\tGT\t0|1\t0|0\n'
+        '3\t1036\t.\tC\tG\t.\tPASS\t.\tGT\t0|0\t1/0\n'
+        '1\t1336\t.\tG\tT\t.\tPASS\t.\tGT\t1/0\t1|0\n'
+    )
+
+    with pytest.raises(ValueError) as e:
+        df = read_vcf.import_vcf(vcf, individuals=['UV3'])
+    assert 'UV3 not in file!' in str(e)
+
+    vcf = StringIO(
+        '##comment\n'
+        '##comment\n'
+        '#chrom\tpos\tid\tref\talt\tqual\tfilter\tinfor\tformat\tUV1\tUV2\n'
+        '8\t10346\t.\tA\tG\t.\tPASS\t.\tGT\t0|1\t0|0\n'
+        '3\t1036\t.\tC\tG\t.\tPASS\t.\tGT\t0|0\t1/0\n'
+        '1\t1336\t.\tG\tT\t.\tPASS\t.\tGT\t1/0\t1|0\n'
+    )
+    df = read_vcf.import_vcf(vcf, individuals=['UV2'])
+    assert list(df.columns.values) ==\
+        ['chrom', 'pos', 'ref', 'alt', 'UV2']
+    assert list(df['chrom']) ==\
+        [8, 3, 1]
+    assert list(df['pos']) ==\
+        [10346, 1036, 1336]
+    assert list(df['ref']) ==\
+        'A C G'.split()
+    assert list(df['alt']) ==\
+        'G G T'.split()
+    assert list(df['UV2']) ==\
+        ['0|0', np.nan, '1|0']
+
+    vcf = StringIO(
+        '##comment\n'
+        '##comment\n'
+        '#chrom\tpos\tid\tref\talt\tqual\tfilter\tinfor\tformat\tUV1\tUV2\n'
+        '8\t10346\t.\tA\tG\t.\tPASS\t.\tGT\t0|1\t0|0\n'
+        '3\t1036\t.\tC\tG\t.\tPASS\t.\tGT\t0|0\t1/0\n'
+        '1\t1336\t.\tG\tT\t.\tPASS\t.\tGT\t1/0\t1|0\n'
+    )
+    df = read_vcf.import_vcf(vcf, individuals=['UV2', 'UV1'])
+    assert list(df.columns.values) ==\
+        ['chrom', 'pos', 'ref', 'alt', 'UV1', 'UV2']
+    assert list(df['chrom']) ==\
+        [8, 3, 1]
+    assert list(df['pos']) ==\
+        [10346, 1036, 1336]
+    assert list(df['ref']) ==\
+        'A C G'.split()
+    assert list(df['alt']) ==\
+        'G G T'.split()
+    assert list(df['UV1']) ==\
+        ['0|1', '0|0', np.nan]
+    assert list(df['UV2']) ==\
+        ['0|0', np.nan, '1|0']
+
     # with new dataframe
     vcf = StringIO(
         '##comment\n'
@@ -92,20 +76,20 @@ def test_import_vcf():
     )
 
     df = read_vcf.import_vcf(vcf)
-    assert list(df['individual']) ==\
-        ['UV1', 'UV1', 'UV2', 'UV2', 'UV1', 'UV1', 'UV2', 'UV2']
-    assert list(df['haplotype']) ==\
-        [1, 2] * 4
-    assert list(df['variant']) ==\
-        [0, 1, 0, 0, 0, 0, 1, 0]
+    assert list(df.columns.values) ==\
+        ['chrom', 'pos', 'ref', 'alt', 'UV1', 'UV2']
     assert list(df['chrom']) ==\
-        [8] * 4 + [3] * 2 + [1] * 2
+        [8, 3, 1]
     assert list(df['pos']) ==\
-        [10346] * 4 + [1036] * 2 + [1336] * 2
+        [10346, 1036, 1336]
     assert list(df['ref']) ==\
-        ['A'] * 4 + ['C'] * 2 + ['G'] * 2
+        'A C G'.split()
     assert list(df['alt']) ==\
-        ['G'] * 4 + ['G'] * 2 + ['T'] * 2
+        'G G T'.split()
+    assert list(df['UV1']) ==\
+        ['0|1', '0|0', np.nan]
+    assert list(df['UV2']) ==\
+        ['0|0', np.nan, '1|0']
 
     # with existing dataframe
     vcf = StringIO(
@@ -117,21 +101,22 @@ def test_import_vcf():
     )
 
     df = read_vcf.import_vcf(vcf, df)
-    assert list(df['individual']) ==\
-        ['UV1', 'UV1', 'UV2', 'UV2', 'UV1', 'UV1', 'UV2', 'UV2',
-         'UV3', 'UV3', 'UV2', 'UV2', 'UV3', 'UV3']
-    assert list(df['haplotype']) ==\
-        [1, 2] * 7
-    assert list(df['variant']) ==\
-        [0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0]
+    assert list(df.columns.values) ==\
+        ['chrom', 'pos', 'ref', 'alt', 'UV1', 'UV2', 'UV3']
     assert list(df['chrom']) ==\
-        [8] * 4 + [3] * 2 + [1] * 2 + [10] * 4 + [1] * 2
+        [8, 3, 1, 10, 1]
     assert list(df['pos']) ==\
-        [10346] * 4 + [1036] * 2 + [1336] * 2 + [10346] * 4 + [1036] * 2
+        [10346, 1036, 1336, 10346, 1036]
     assert list(df['ref']) ==\
-        ['A'] * 4 + ['C'] * 2 + ['G'] * 2 + ['A'] * 4 + ['C'] * 2
+        'A C G A C'.split()
     assert list(df['alt']) ==\
-        ['G'] * 4 + ['G'] * 2 + ['T'] * 2 + ['G'] * 4 + ['G'] * 2
+        'G G T G G'.split()
+    assert list(df['UV1']) ==\
+        ['0|1', '0|0', np.nan, np.nan, np.nan]
+    assert list(df['UV2']) ==\
+        ['0|0', np.nan, '1|0', '0|0', np.nan]
+    assert list(df['UV3']) ==\
+        [np.nan, np.nan, np.nan, '0|1', '0|0']
 
     # skip multi allelic sites
     vcf = StringIO(
@@ -144,20 +129,19 @@ def test_import_vcf():
     )
 
     df = read_vcf.import_vcf(vcf)
-    assert list(df['individual']) ==\
-        ['UV3', 'UV3']
-    assert list(df['haplotype']) ==\
-        [1, 2]
-    assert list(df['variant']) ==\
-        [0, 0]
+    assert list(df.columns.values) ==\
+        ['chrom', 'pos', 'ref', 'alt', 'UV3', 'UV2']
     assert list(df['chrom']) ==\
-        [1] * 2
+        [1]
     assert list(df['pos']) ==\
-        [1036] * 2
+        [1036]
     assert list(df['ref']) ==\
-        ['C'] * 2
+        ['C']
     assert list(df['alt']) ==\
-        ['G'] * 2
+        ['G']
+    assert list(df['UV3']) ==\
+        ['0|0']
+    assert np.isnan(df['UV2']).all()
 
     # all multi-allelic
     vcf = StringIO(
@@ -182,7 +166,7 @@ def test_import_vcf():
 
     with pytest.raises(ValueError) as e:
         df = read_vcf.import_vcf(vcf, df, check_phasing=True)
-    assert 'Unexpected unphased haplotype 1/0 for UV2 on line 5' in str(e)
+    assert 'Unexpected unphased haplotype for UV2 on position 1036' in str(e)
 
     vcf = StringIO(
         '#chrom\tpos\tid\tref\talt\tqual\tfilter\tinfor\tformat\tUV3\tUV2\n'
@@ -192,7 +176,7 @@ def test_import_vcf():
 
     with pytest.raises(ValueError) as e:
         df = read_vcf.import_vcf(vcf, df, check_phasing=True)
-    assert 'Unexpected unphased haplotype 0/1 for UV3 on line 2' in str(e)
+    assert 'Unexpected unphased haplotype for UV3 on position 10346' in str(e)
 
 
 def test_import_archaic_vcf():

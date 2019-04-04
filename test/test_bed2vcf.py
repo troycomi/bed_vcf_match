@@ -1,13 +1,11 @@
-import main as main
+import bed2vcf as main
 
 
 def arg_helper(args, nondefault={}):
     defaults = {
-        'archaic_vcfs': None,
-        'modern_vcfs': None,
+        'archaic_vcfs': [],
+        'modern_vcfs': [],
         'bed_files': None,
-        'load_db': None,
-        'save_db': None,
         'output_dir': None,
         'vcf_output': False,
         'bed_output': False,
@@ -22,7 +20,6 @@ def arg_helper(args, nondefault={}):
 def test_read_args():
     # test defaults
     args = main.read_args([])
-    assert len(args.__dict__) == 8
     arg_helper(args.__dict__)
 
     # set outputs
@@ -36,12 +33,6 @@ def test_read_args():
 
     args = main.read_args('--vcf_output'.split())
     arg_helper(args.__dict__, {'vcf_output': True})
-
-    # file inputs
-    args = main.read_args('--save_db file.pkl'.split())
-    arg_helper(args.__dict__, {'save_db': 'file.pkl'})
-    args = main.read_args('--load_db file.pkl'.split())
-    arg_helper(args.__dict__, {'load_db': 'file.pkl'})
 
     # vcfs and bed files
     arg_name = ['bed_files', 'modern_vcfs', 'archaic_vcfs']

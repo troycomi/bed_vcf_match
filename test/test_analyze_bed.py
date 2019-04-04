@@ -19,23 +19,18 @@ def test_read_bed():
 
 def test_filter_modern_db():
     modern = StringIO(
-        'chrom,pos,individual,haplotype,variant,ref,alt\n'
-        '1,100,UV1,1,0,A,T\n'
-        '1,100,UV1,2,1,A,T\n'
-        '1,100,UV2,1,0,A,T\n'
-        '1,100,UV2,2,0,A,T\n'
-        '2,200,UV1,1,1,C,G\n'
-        '2,200,UV1,2,1,C,G\n'
-        '3,300,UV2,1,0,T,A\n'
-        '3,300,UV2,2,1,T,A\n'
-        '3,305,UV2,1,0,G,C\n'
-        '3,305,UV2,2,0,G,C\n'
-        '1,105,UV2,1,1,A,T\n'
-        '1,105,UV2,2,0,A,T\n'
-        '1,110,UV2,1,1,C,G\n'
-        '1,110,UV2,2,1,C,G\n'
+        'chrom,pos,ref,alt,UV1,UV2\n'
+        '1,100,A,T,0|1,0|0\n'
+        '2,200,C,G,1|1,nan\n'
+        '3,300,T,A,nan,0|1\n'
+        '3,305,T,A,nan,0|0\n'
+        '1,105,A,T,nan,1|0\n'
+        '1,110,C,G,nan,1|1\n'
     )
     database = pd.read_csv(modern)
+    # select nans
+    rows = analyze_bed.filter_modern_db(database, 1, 100, 110, 1, 'UV1')
+    assert len(rows) == 1
 
     # basic, test matches
     rows = analyze_bed.filter_modern_db(database, 1, 100, 110, 1, 'UV2')
@@ -43,8 +38,6 @@ def test_filter_modern_db():
     assert list(rows['ref']) == 'A A C'.split()
     assert list(rows['alt']) == 'T T G'.split()
     assert list(rows['variant']) == [0, 1, 1]
-    assert list(rows['haplotype']) == [1] * 3
-    assert list(rows['individual']) == ['UV2'] * 3
     assert list(rows['chrom']) == [1] * 3
     assert list(rows['pos']) == [100, 105, 110]
 
@@ -58,13 +51,11 @@ def test_filter_modern_db():
 
     # when start == end
     rows = analyze_bed.filter_modern_db(database, 1, 100, 100, 2, 'UV2')
-    assert list(rows['haplotype']) == [2]
     assert len(rows) == 1
     assert list(rows['pos']) == [100]
 
     # another individual
     rows = analyze_bed.filter_modern_db(database, 2, 200, 210, 1, 'UV1')
-    assert list(rows['individual']) == ['UV1']
     assert list(rows['chrom']) == [2]
     assert list(rows['pos']) == [200]
     assert len(rows) == 1
@@ -129,19 +120,12 @@ def test_join_vcfs():
 
 def test_summarize_region():
     modern = StringIO(
-        'chrom,pos,individual,haplotype,variant,ref,alt\n'
-        '1,100,UV1,1,0,A,T\n'
-        '1,100,UV1,2,1,A,T\n'
-        '1,100,UV2,1,0,A,T\n'
-        '1,100,UV2,2,0,A,T\n'
-        '1,105,UV2,1,1,A,T\n'
-        '1,105,UV2,2,0,A,T\n'
-        '1,110,UV2,1,1,C,G\n'
-        '1,110,UV2,2,1,C,G\n'
-        '1,115,UV2,1,1,A,T\n'
-        '1,115,UV2,2,0,A,T\n'
-        '1,120,UV2,1,1,C,G\n'
-        '1,120,UV2,2,1,C,G\n'
+        'chrom,pos,ref,alt,UV1,UV2\n'
+        '1,100,A,T,0|1,0|0\n'
+        '1,105,A,T,nan,1|0\n'
+        '1,110,C,G,nan,1|1\n'
+        '1,115,A,T,nan,1|0\n'
+        '1,120,C,G,nan,1|1\n'
     )
     modern = pd.read_csv(modern)
 

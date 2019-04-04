@@ -61,7 +61,8 @@ def summarize_region(bed_line: List[int],
         matches = np.sum(joined['archaic'] * joined['variant'])/2
         line += f'\t{matches}'
         if sites != 0:
-            line += f'\t{matches / sites}'
+            fraction = round(matches / sites, 6)
+            line += f'\t{fraction}'
         else:
             line += '\tnan'
 
@@ -77,12 +78,21 @@ def filter_modern_db(modern_vcf: pd.DataFrame,
     '''
     Get matching rows in modern database. Find start <= position <= end
     '''
-    return modern_vcf.loc[
+
+    result = modern_vcf.loc[
         (modern_vcf['chrom'] == chrom) &
         (modern_vcf['pos'] >= start) &
-        (modern_vcf['pos'] <= end) &
-        (modern_vcf['individual'] == individual) &
-        (modern_vcf['haplotype'] == haplotype)]
+        (modern_vcf['pos'] <= end),
+        ['chrom', 'pos', 'ref', 'alt', individual]]
+    result.rename({individual: 'variant'}, axis='columns', inplace=True)
+    result.dropna(inplace=True)
+
+    replace = {'0..': 0, '1..': 1}  # haplotype == 1
+    if haplotype == 2:
+        replace = {'..0': 0, '..1': 1}
+    result.variant.replace(regex=replace, inplace=True)
+
+    return result
 
 
 def join_vcf(modern: pd.DataFrame, archaic: pd.DataFrame) -> pd.DataFrame:
