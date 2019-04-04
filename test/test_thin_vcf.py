@@ -208,6 +208,32 @@ def test_line_parser_no_op():
 
 
 def test_line_parser_bed():
+    p = main.line_parser(np.array([[3, 4], [5, 6]]), None)
+    assert p.process_line('## stuff') == '## stuff'
+    assert p.process_line('## stuff') == '## stuff'
+    assert p.process_line('# stuff') == '# stuff'
+    assert p.process_line(
+        '3 3 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        ''
+
+    assert p.process_line(
+        '3 4 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        '3 4 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')
+
+    assert p.process_line(
+        '3 5 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        ''
+
+    assert p.process_line(
+        '3 6 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        '3 6 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')
+
+    assert p.process_line(
+        '3 7 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        ''
+
+
+def test_line_parser_bed_2():
     p = main.line_parser(np.array([[10, 20], [30, 50]]), None)
     assert p.process_line('## stuff') == '## stuff'
     assert p.process_line('## stuff') == '## stuff'
@@ -216,17 +242,26 @@ def test_line_parser_bed():
         '3 1 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
         ''
     assert p.process_line(
-        '3 21 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
-        ''
-    assert p.process_line(
         '3 10 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
-        '3 10 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')
+        ''
     assert p.process_line(
         '3 15 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
         '3 15 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')
     assert p.process_line(
+        '3 20 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        '3 20 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')
+    assert p.process_line(
+        '3 21 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        ''
+    assert p.process_line(
         '3 35 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
         '3 35 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')
+    assert p.process_line(
+        '3 51 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        ''
+    assert p.process_line(
+        '3 61 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        ''
 
 
 def test_line_parser_indiv():
@@ -259,8 +294,8 @@ def test_line_parser_both():
         '#c p a b c d e f g u1 u2 u3\n'.replace(' ', '\t')) == \
         '#c p a b c d e f g u1 u3\n'.replace(' ', '\t')
     assert p.process_line(
-        '3 10 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
-        '3 10 a b c d e f g ./. 1|1\n'.replace(' ', '\t')
+        '3 11 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        '3 11 a b c d e f g ./. 1|1\n'.replace(' ', '\t')
     assert p.process_line(
-        '3 1 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
+        '3 61 a b c d e f g ./. 0|0 1|1\n'.replace(' ', '\t')) == \
         ''

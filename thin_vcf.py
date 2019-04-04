@@ -113,8 +113,10 @@ class line_parser():
         if self.bed is None:
             self.parser = self.no_op
         else:
+            self.bed += 1
             self.parser = self.filter_bed
         self.retain = 9
+        self.bed_ind = 0
 
     def process_line(self, line: str) -> str:
         if line[1] == '#':
@@ -146,9 +148,14 @@ class line_parser():
 
     def filter_bed(self, line: str):
         pos = int(line.split('\t')[1])
-        if np.any(
-            np.logical_and(self.bed[:, 0] <= pos,
-                           self.bed[:, 1] >= pos)):
+        if self.bed_ind >= self.bed.shape[0]:
+            return ''
+        while pos >= self.bed[self.bed_ind, 1]:
+            self.bed_ind += 1
+            if self.bed_ind >= self.bed.shape[0]:
+                return ''
+        # by the time we are here, pos < end
+        if pos >= self.bed[self.bed_ind, 0]:
             return line
         else:
             return ''
@@ -156,9 +163,14 @@ class line_parser():
     def filter_both(self, line: str):
         tokens = line.split('\t')
         pos = int(tokens[1])
-        if np.any(
-            np.logical_and(self.bed[:, 0] <= pos,
-                           self.bed[:, 1] >= pos)):
+        if self.bed_ind >= self.bed.shape[0]:
+            return ''
+        while pos >= self.bed[self.bed_ind, 1]:
+            self.bed_ind += 1
+            if self.bed_ind >= self.bed.shape[0]:
+                return ''
+        # by the time we are here, pos < end
+        if pos >= self.bed[self.bed_ind, 0]:
             return '\t'.join([tokens[i] for i in self.indivs]).rstrip() + '\n'
         else:
             return ''

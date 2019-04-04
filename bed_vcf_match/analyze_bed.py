@@ -76,12 +76,12 @@ def filter_modern_db(modern_vcf: pd.DataFrame,
                      haplotype: int,
                      individual: str) -> pd.DataFrame:
     '''
-    Get matching rows in modern database. Find start <= position <= end
+    Get matching rows in modern database. Find start < position <= end
     '''
 
     result = modern_vcf.loc[
         (modern_vcf['chrom'] == chrom) &
-        (modern_vcf['pos'] >= start) &
+        (modern_vcf['pos'] > start) &
         (modern_vcf['pos'] <= end),
         ['chrom', 'pos', 'ref', 'alt', individual]]
     result.rename({individual: 'variant'}, axis='columns', inplace=True)

@@ -21,7 +21,7 @@ bed_files=/tigress/AKEY/akey_vol1/home/serenatu/BACKUP_UW_Aug.2017/serenatu/STAR
 out_dir=/tigress/tcomi/stucci_temp/processing
 vcftools=/tigress/AKEY/akey_vol1/software/Vcftools/vcftools-v0.1.15/bin/vcftools
 bedtools=/tigress/AKEY/akey_vol1/software/bedtools2/bin/mergeBed
-filter_bed=/tigress/AKEY/akey_vol2/serenatu/analysis/rampa/filteredVCF_FINAL_OCT25/filters_Jan26/FINAL_archaic_paper/Keep_by_Chr
+filter_bed=/tigress/AKEY/akey_vol2/serenatu/analysis/two.den/filters/sorted
 
 module load anaconda3
 conda activate bed2vcf
@@ -32,12 +32,11 @@ chr=$SLURM_ARRAY_TASK_ID
 
 zcat $modern_vcf/merged_rampa_1000g_png_phased_20.05.2017_chr${chr}.vcf.gz | \
 python thin_vcf.py \
-    --bed_file $filter_bed/keep_intersect_rps_arch_chr${chr}.bed.sorted.bed \
-    --merge 10 \
+    --bed_file $filter_bed/rampa.final.sites.to.keep.chr${chr}.bed.sorted.bed \
     --individuals_file indivs.txt | \
 gzip -c > $out_dir/chr${chr}.vcf.gz
 
-exit
+exit # The above should replace this
 
 $bedtools \
     -i $filter_bed/keep_intersect_rps_arch_chr${chr}.bed.sorted.bed \

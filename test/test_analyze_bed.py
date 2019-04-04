@@ -29,11 +29,13 @@ def test_filter_modern_db():
     )
     database = pd.read_csv(modern)
     # select nans
-    rows = analyze_bed.filter_modern_db(database, 1, 100, 110, 1, 'UV1')
+    rows = analyze_bed.filter_modern_db(database, 1, 99, 110, 1, 'UV1')
     assert len(rows) == 1
+    rows = analyze_bed.filter_modern_db(database, 1, 100, 110, 1, 'UV1')
+    assert len(rows) == 0
 
     # basic, test matches
-    rows = analyze_bed.filter_modern_db(database, 1, 100, 110, 1, 'UV2')
+    rows = analyze_bed.filter_modern_db(database, 1, 99, 110, 1, 'UV2')
     assert len(rows) == 3
     assert list(rows['ref']) == 'A A C'.split()
     assert list(rows['alt']) == 'T T G'.split()
@@ -42,26 +44,26 @@ def test_filter_modern_db():
     assert list(rows['pos']) == [100, 105, 110]
 
     # check <= for end then start
-    rows = analyze_bed.filter_modern_db(database, 1, 100, 109, 1, 'UV2')
+    rows = analyze_bed.filter_modern_db(database, 1, 99, 109, 1, 'UV2')
     assert len(rows) == 2
     assert list(rows['pos']) == [100, 105]
-    rows = analyze_bed.filter_modern_db(database, 1, 101, 110, 1, 'UV2')
+    rows = analyze_bed.filter_modern_db(database, 1, 100, 110, 1, 'UV2')
     assert len(rows) == 2
     assert list(rows['pos']) == [105, 110]
 
     # when start == end
-    rows = analyze_bed.filter_modern_db(database, 1, 100, 100, 2, 'UV2')
+    rows = analyze_bed.filter_modern_db(database, 1, 99, 100, 2, 'UV2')
     assert len(rows) == 1
     assert list(rows['pos']) == [100]
 
     # another individual
-    rows = analyze_bed.filter_modern_db(database, 2, 200, 210, 1, 'UV1')
+    rows = analyze_bed.filter_modern_db(database, 2, 199, 210, 1, 'UV1')
     assert list(rows['chrom']) == [2]
     assert list(rows['pos']) == [200]
     assert len(rows) == 1
 
     # non existant chrom
-    rows = analyze_bed.filter_modern_db(database, 8, 100, 110, 2, 'UV1')
+    rows = analyze_bed.filter_modern_db(database, 8, 99, 110, 2, 'UV1')
     assert len(rows) == 0
 
 
@@ -130,13 +132,13 @@ def test_summarize_region():
     modern = pd.read_csv(modern)
 
     # no archaic, just match number of sites and variants
-    summary = analyze_bed.summarize_region([1, 100, 120], 1, 'UV2', modern)
-    assert summary == '1\t100\t120\t5\t4\n'
-    summary = analyze_bed.summarize_region([1, 100, 120], 2, 'UV2', modern)
-    assert summary == '1\t100\t120\t5\t2\n'
+    summary = analyze_bed.summarize_region([1, 99, 120], 1, 'UV2', modern)
+    assert summary == '1\t99\t120\t5\t4\n'
+    summary = analyze_bed.summarize_region([1, 99, 120], 2, 'UV2', modern)
+    assert summary == '1\t99\t120\t5\t2\n'
     # no matches
-    summary = analyze_bed.summarize_region([2, 100, 120], 2, 'UV2', modern)
-    assert summary == '2\t100\t120\t0\t0\n'
+    summary = analyze_bed.summarize_region([2, 99, 120], 2, 'UV2', modern)
+    assert summary == '2\t99\t120\t0\t0\n'
 
     # one archaic, no matches
     archaic1 = StringIO(
@@ -145,13 +147,13 @@ def test_summarize_region():
         '1,105,A,C,2\n'
     )
     archaic1 = pd.read_csv(archaic1)
-    summary = analyze_bed.summarize_region([1, 100, 120], 1, 'UV2',
+    summary = analyze_bed.summarize_region([1, 99, 120], 1, 'UV2',
                                            modern, archaic1)
-    assert summary == '1\t100\t120\t5\t4\t0.0\t0.0\t0.0\n'
+    assert summary == '1\t99\t120\t5\t4\t0.0\t0.0\t0.0\n'
     # no matches
-    summary = analyze_bed.summarize_region([2, 100, 120], 1, 'UV2',
+    summary = analyze_bed.summarize_region([2, 99, 120], 1, 'UV2',
                                            modern, archaic1)
-    assert summary == '2\t100\t120\t0\t0\t0.0\t0.0\tnan\n'
+    assert summary == '2\t99\t120\t0\t0\t0.0\t0.0\tnan\n'
 
     # another archaic, with matches
     archaic2 = StringIO(
@@ -161,6 +163,6 @@ def test_summarize_region():
         '1,110,C,G,0\n'
     )
     archaic2 = pd.read_csv(archaic2)
-    summary = analyze_bed.summarize_region([1, 100, 120], 1, 'UV2',
+    summary = analyze_bed.summarize_region([1, 99, 120], 1, 'UV2',
                                            modern, archaic1, archaic2)
-    assert summary == '1\t100\t120\t5\t4\t0.0\t0.0\t0.0\t1.5\t1.0\t0.2\n'
+    assert summary == '1\t99\t120\t5\t4\t0.0\t0.0\t0.0\t1.5\t1.0\t0.2\n'
