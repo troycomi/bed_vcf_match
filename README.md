@@ -15,9 +15,23 @@ Once created, activate the environment with: `conda activate bed2vcf`
 All unit tests can be run within the conda environment by calling `pytest`
 
 ## Usage
-The main function takes the following command line arguments:
+There are two main functions in the top level directory
 
-- SOMETHING: something
+### thin\_vcf.py
+This function performs filtering of vcfs based on individual names or bed files
+to retain.  The script thin\_vcf.slurm shows a submission along with the
+vcftools implementation.  Leveraging zcat and gzip to perform compression and
+using the sorted nature of both files, this runs more quickly than the vcftools
+version.
+
+### bed2vcf.py
+This performs the main analysis and is run with run.slurm.  Bed files are 
+provided with the `--bed_files` flag and outputs are written to the
+`--output_dir` with the same base filename as the inputs, appended with 
+".matched".  Vcfs should be provided for each chromosome and labeled with a 
+wildcard for python formatting.  E.g. if the files are named chrom\_1\_filter.vcf
+the command line expects the input chrom\_\{chr\}\_filter.vcf and will expand
+to each chromosome in \[1, 22\]
 
 ## License
 
