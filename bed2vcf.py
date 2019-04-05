@@ -12,7 +12,7 @@ import argparse
 from typing import List
 from itertools import chain
 from bed_vcf_match.read_vcf import import_vcf, import_archaic_vcf
-from bed_vcf_match.analyze_bed import read_bed, summarize_region
+from bed_vcf_match.analyze_bed import bed_structure
 import gzip
 import os
 
@@ -20,66 +20,45 @@ import os
 def main():
     args = read_args()
 
-    individuals = []
+    # read in bed files, building output files and bed structure
+    beds = []
     for bed_file in args.bed_files:
-        in_file = os.path.split(bed_file)
+        beds.append(bed_structure(bed_file, args.output_dir))
 
-        # assume file is encoded as {indiv}.CODE.type_hap{haplotype}.bed...
-        individuals.append(in_file[1].split('.')[0])
+    indivs = list(set([bed.individual for bed in beds]))
+    print(f'found {len(indivs)} individuals')
+    print(f'found {len(beds)} bed files')
 
-    print(f'found {len(individuals)} bed files')
-
-    # read in modern vcfs
-    print(f'reading {len(args.modern_vcfs)} modern vcfs', flush=True)
-    modern_db = None
-    for vcf in args.modern_vcfs:
+    for chrm in range(1, 23):
+        print(f'starting chromosome {chrm}')
+        vcf = args.modern_vcfs[0].format(chr=chrm)
         print(os.path.split(vcf)[1], flush=True)
         if os.path.splitext(vcf)[1] == '.gz':
             reader = gzip.open(vcf, 'rt')
         else:
             reader = open(vcf)
-
         modern_db = import_vcf(reader,
-                               modern_db,
                                check_phasing=True,
-                               individuals=individuals)
+                               individuals=indivs)
         reader.close()
 
-    # read in archaic files
-    print(f'reading {len(args.archaic_vcfs)} archaic vcfs', flush=True)
-    archaic_db = [None]
-    for vcf in args.archaic_vcfs:
+        vcf = args.archaic_vcfs[0].format(chr=chrm)
         print(os.path.split(vcf)[1], flush=True)
         if os.path.splitext(vcf)[1] == '.gz':
             reader = gzip.open(vcf, 'rt')
         else:
             reader = open(vcf)
 
-        archaic_db[0] = import_archaic_vcf(reader, archaic_db[0])
+        archaic_db = import_archaic_vcf(reader)
         reader.close()
 
-    print(f'working on {len(args.bed_files)} bed files', flush=True)
-    for bed_file in args.bed_files:
-        in_file = os.path.split(bed_file)
-        print(in_file[1], flush=True)
-        if args.output_dir is None:
-            args.output_dir = in_file[0]
+        print('starting bed output...')
+        for bed in beds:
+            bed.process_chrom(chrm, modern_db, archaic_db)
+        print(f'finished chromosome {chrm}')
 
-        # assume file is encoded as {indiv}.CODE.type_hap{haplotype}.bed...
-        tokens = in_file[1].split('.')
-        individual = tokens[0]
-        haplotype = int(tokens[2][-1])
-        outfile = os.path.join(args.output_dir,
-                               in_file[1] + ".matched")
-
-        with open(outfile, 'w') as bed_out:
-            bed_lines = read_bed(bed_file)
-            for line in bed_lines:
-                bed_out.write(summarize_region(line.values[0],
-                                               haplotype,
-                                               individual,
-                                               modern_db,
-                                               *archaic_db))
+    for bed in beds:
+        bed.close()
     print('done!')
 
 

@@ -7,12 +7,64 @@ Module for performing analyses with bedfiles
 
 import pandas as pd
 import numpy as np
-from typing import TextIO, List
+import os
+from typing import TextIO, List, Dict, Tuple
 
 
 CHROMOSOME = 0
 START = 1
 END = 2
+
+
+class bed_structure():
+    def __init__(self, filename, out_dir=None):
+        with open(filename, 'r') as reader:
+            self.bed = structure_bed(reader)
+
+        # split filename into path and file
+        self.filename = filename
+        t = os.path.split(filename)
+
+        # pull out individual, haplotype
+        tokens = t[1].split('.')
+        self.individual = tokens[0]
+        self.haplotype = int(tokens[2][-1])
+
+        # setup output file
+        if out_dir is None:
+            out_dir = t[0]
+        outfile = os.path.join(out_dir, t[1] + ".matched")
+        self.writer = open(outfile, 'w')
+
+    def process_chrom(self, chromosome: int, modern_db, archaic_db):
+        chrm = str(chromosome)
+        if chrm not in self.bed:
+            return
+        for start, end in self.bed[chrm]:
+            self.writer.write(summarize_region(
+                [chromosome, start, end],
+                self.haplotype,
+                self.individual,
+                modern_db,
+                archaic_db))
+
+    def close(self):
+        self.writer.close()
+
+
+def structure_bed(reader: TextIO) -> Dict[str, List[Tuple[int, int]]]:
+    '''
+    read in the bed file, returning a dictionary keyed by chromosome
+    with a list of (start, end) tuples
+    '''
+    result = {}
+    for line in reader:
+        chrom, start, end = line.split()
+        if chrom not in result:
+            result[chrom] = []
+        result[chrom].append((int(start), int(end)))
+
+    return result
 
 
 def read_bed(reader: TextIO) -> pd.io.parsers.TextFileReader:
@@ -33,7 +85,7 @@ def summarize_region(bed_line: List[int],
                      haplotype: int,
                      individual: str,
                      modern_vcf: pd.DataFrame,
-                     *archaic_vcfs: pd.DataFrame) -> List[float]:
+                     *archaic_vcfs: pd.DataFrame) -> str:
     '''
     Given a line from a bed file, the individual and haplotype,
     look up the corresponding region in the modern vcf database,

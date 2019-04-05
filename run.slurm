@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --time=0-8
-#SBATCH --mem=32G
+#SBATCH --mem=8G
 #SBATCH -n 1
 #SBATCH -o "/tigress/tcomi/stucci_temp/bed_%A.out"
 
@@ -29,8 +29,7 @@ set -euo pipefail
     --bed_files $bed_files/UV*.PNG.*_hap?.bed.merged.bed \
     --bed_output \
     --output_dir $out_dir \
-    --modern_vcfs $modern_vcf/chr*.vcf.gz \
-    --archaic_vcfs $altai_vcf/chr[0-9].altai_neand_mpi_minimal_filtered_lowqual.vcf.gz \
-    --archaic_vcfs $altai_vcf/chr[0-9][0-9].altai_neand_mpi_minimal_filtered_lowqual.vcf.gz \
+    --modern_vcfs $modern_vcf/chr{chr}.vcf.gz \
+    --archaic_vcfs $altai_vcf/chr{chr}.altai_neand_mpi_minimal_filtered_lowqual.vcf.gz \
     #--modern_vcfs $modern_vcf/merged_rampa_1000g_png_phased_20.05.2017_chr22.vcf.gz \
     #--archaic_vcfs $altai_vcf/chr22.altai_neand_mpi_minimal_filtered_lowqual.vcf.gz \
