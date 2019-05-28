@@ -120,6 +120,71 @@ def test_join_vcfs():
     assert_frame_equal(joined, expected)
 
 
+def test_join_vcfs_with_canc():
+    modern = StringIO(
+        'chrom,pos,individual,haplotype,variant,ref,alt\n'
+        '1,100,UV1,1,0,A,T\n'
+        '1,100,UV1,2,1,A,T\n'
+        '1,101,UV1,1,0,A,T\n'
+        '1,101,UV1,2,1,A,T\n'
+        '1,102,UV1,1,0,A,T\n'
+        '1,102,UV1,2,1,A,T\n'
+        '2,100,UV1,1,0,A,T\n'
+        '2,100,UV1,2,1,A,T\n'
+        '2,101,UV1,1,0,A,T\n'
+        '2,101,UV1,2,1,A,T\n'
+        '2,102,UV1,1,0,A,T\n'
+        '2,102,UV1,2,1,A,T\n'
+        '3,100,UV1,1,0,A,T\n'
+        '3,100,UV1,2,1,A,T\n'
+        '3,101,UV1,1,0,A,T\n'
+        '3,101,UV1,2,1,A,T\n'
+        '3,102,UV1,1,0,A,T\n'
+        '3,102,UV1,2,1,A,T\n'
+    )
+    modern = pd.read_csv(modern)
+
+    archaic = StringIO(
+        'chrom,pos,ref,alt,variant,CAnc\n'
+        '1,100,A,T,0,A\n'  # CAnc == ref
+        '1,101,A,T,0,T\n'  # CAnc == alt
+        '1,102,A,T,0,G\n'  # CAnc == neither
+        '2,100,A,T,1,A\n'  # CAnc == ref
+        '2,101,A,T,1,T\n'  # CAnc == alt
+        '2,102,A,T,1,G\n'  # CAnc == neither
+        '3,100,A,T,2,A\n'  # CAnc == ref
+        '3,101,A,T,2,T\n'  # CAnc == alt
+        '3,102,A,T,2,G\n'  # CAnc == neither
+    )
+    archaic = pd.read_csv(archaic)
+
+    expected = StringIO(
+        'chrom,pos,individual,haplotype,variant,ref,alt,archaic\n'
+        '1,100,UV1,1,0,A,T,0\n'  # CAnc == ref
+        '1,100,UV1,2,1,A,T,0\n'
+        '1,101,UV1,1,1,A,T,2\n'  # CAnc == alt
+        '1,101,UV1,2,0,A,T,2\n'
+        '1,102,UV1,1,0,A,T,0\n'  # CAnc == neither
+        '1,102,UV1,2,0,A,T,0\n'
+        '2,100,UV1,1,0,A,T,1\n'  # CAnc == ref
+        '2,100,UV1,2,1,A,T,1\n'
+        '2,101,UV1,1,1,A,T,1\n'  # CAnc == alt
+        '2,101,UV1,2,0,A,T,1\n'
+        '2,102,UV1,1,0,A,T,0\n'  # CAnc == neither
+        '2,102,UV1,2,0,A,T,0\n'
+        '3,100,UV1,1,0,A,T,2\n'  # CAnc == ref
+        '3,100,UV1,2,1,A,T,2\n'
+        '3,101,UV1,1,1,A,T,0\n'  # CAnc == alt
+        '3,101,UV1,2,0,A,T,0\n'
+        '3,102,UV1,1,0,A,T,0\n'  # CAnc == neither
+        '3,102,UV1,2,0,A,T,0\n'
+    )
+    expected = pd.read_csv(expected)
+
+    joined = analyze_bed.join_vcf(modern, archaic)
+    assert_frame_equal(joined, expected)
+
+
 def test_summarize_region():
     modern = StringIO(
         'chrom,pos,ref,alt,UV1,UV2\n'

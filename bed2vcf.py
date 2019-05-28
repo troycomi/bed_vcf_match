@@ -49,7 +49,8 @@ def main():
         else:
             reader = open(vcf)
 
-        archaic_db = import_archaic_vcf(reader)
+        archaic_db = import_archaic_vcf(reader,
+                                        include_canc=args.canc_correction)
         reader.close()
 
         print('starting bed output...')
@@ -110,6 +111,12 @@ def read_args(args: List[str] = None) -> argparse.Namespace:
                         help='The output directory to store all files. '
                         'If not set but output is requested, output will be '
                         'created in the same directory as the input files.'
+                        )
+
+    parser.add_argument('--canc_correction',
+                        action='store_true',
+                        help='If set, will consider CAnc of the archaic vcf '
+                        'when calculating values.'
                         )
 
     args = parser.parse_args(args)

@@ -159,4 +159,13 @@ def join_vcf(modern: pd.DataFrame, archaic: pd.DataFrame) -> pd.DataFrame:
                       how='left',
                       on=['chrom', 'pos', 'ref', 'alt'])
     joined.fillna(0, inplace=True)
+    # TODO add in canc filtering here if it is a column in result
+    if 'CAnc' in joined.columns:
+        match_alt = joined.CAnc == joined.alt
+        joined.loc[match_alt, 'archaic'] = 2 - joined.loc[match_alt, 'archaic']
+        joined.loc[match_alt, 'variant'] = 1 - joined.loc[match_alt, 'variant']
+        match_neither = (joined.CAnc != joined.alt) & \
+            (joined.CAnc != joined.ref)
+        joined.loc[match_neither, ['archaic', 'variant']] = 0
+        joined = joined.drop(columns='CAnc')
     return joined.astype({'archaic': int})

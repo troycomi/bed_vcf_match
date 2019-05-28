@@ -9,6 +9,7 @@ def arg_helper(args, nondefault={}):
         'output_dir': None,
         'vcf_output': False,
         'bed_output': False,
+        'canc_correction': False,
     }
     for k, v in nondefault.items():
         defaults[k] = v

@@ -81,7 +81,8 @@ def import_vcf(vcf_reader: TextIO,
 
 
 def import_archaic_vcf(vcf_reader: TextIO,
-                       dataframe: pd.DataFrame = None) -> pd.DataFrame:
+                       dataframe: pd.DataFrame = None,
+                       include_canc: bool = False) -> pd.DataFrame:
     '''
     Read in all lines of the provided, open vcf file and return a
     pandas dataframe.
@@ -89,16 +90,32 @@ def import_archaic_vcf(vcf_reader: TextIO,
     number of alt sites only.  E.g. 0/1 -> 1, ./. -> 0, 1|1 -> 2
     '''
     usecols = ['chrom', 'pos', 'ref', 'alt', 'variant']
+    if include_canc:
+        usecols += ['infor']
     header = ['chrom', 'pos', 'id', 'ref', 'alt', 'qual',
               'filter', 'infor', 'format', 'variant']
     result = pd.read_csv(vcf_reader,
                          delimiter='\t',
                          header=None,
                          names=header,
-                         usecols=usecols)
+                         usecols=usecols,
+                         comment='#')
 
     result = result.loc[(result.ref.str.len() == 1)
                         & (result.alt.str.len() == 1)]
+    if include_canc:
+        result = result.loc[result.infor.str.contains('CAnc')]
+
+        # extract CAnc into separate column, drop info
+        def extract_canc(info):
+            for token in info.split(';'):
+                tokens = token.split('=')
+                if tokens[0] == 'CAnc':
+                    return tokens[1]
+        result.insert(len(result.columns),
+                      "CAnc",
+                      result.infor.map(extract_canc))
+        result = result.drop(columns='infor')
 
     phase_decoder = {}
     for i in range(2):
@@ -107,10 +124,16 @@ def import_archaic_vcf(vcf_reader: TextIO,
             phase_decoder[f'{i}/{j}'] = i + j
     phase_decoder['./.'] = 0
 
+    if include_canc:
+        phase_decoder['./.'] = -1  # to filter later
+
     def process_phase(x):
         return phase_decoder[x[:3]]
 
     result.variant = result.variant.map(process_phase)
+
+    if include_canc:
+        result = result.loc[result.variant != -1]
 
     if dataframe is not None:
         return pd.concat([dataframe, result], sort=False)

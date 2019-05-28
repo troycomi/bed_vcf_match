@@ -33,6 +33,19 @@ wildcard for python formatting.  E.g. if the files are named chrom\_1\_filter.vc
 the command line expects the input chrom\_\{chr\}\_filter.vcf and will expand
 to each chromosome in \[1, 22\]
 
+### Output Format
+Currently only bed output is supported.  Each row corresponds to a row in the
+input bed file.  The columns are:
+1. Chromosome
+2. Start Position
+3. End Position
+4. Number of entries in the modern VCF within this region.
+5. Number of derived haplotypes within the region
+6. Number of derived haplotypes in the archaic VCF within the region
+7. Number of derived haplotypes in archaic which match a derived haplotype
+in the modern vcf.
+8. Column 7 divided by column 4
+
 ## License
 
 MIT © [Troy Comi](https://github.com/troycomi)
