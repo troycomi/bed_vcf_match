@@ -18,20 +18,20 @@ deni_vcf=/tigress/AKEY/akey_vol1/home/bvernot/archaic_exome/data/denisova_vcfs/2
 
 #here are the bed files which refer to the individuals in the vcf file. These are three columns that include #chr #start #end of a genomic region
 bed_files=/tigress/AKEY/akey_vol1/home/serenatu/BACKUP_UW_Aug.2017/serenatu/STAR_2017/output/analysis/ALL.CALLS.AUG.2017
-out_dir=/tigress/tcomi/stucci_temp/altai_CAnc/
+out_dir=/tigress/tcomi/stucci_temp/denisova_2013.06.18_CAnc/
+#out_dir=/tigress/tcomi/stucci_temp/altai_CAnc/
 
 module load anaconda3
 conda activate bed2vcf
 
 set -euo pipefail
 
-# TODO change to process a chromosome at a time from every bed
 ./bed2vcf.py \
     --bed_files $bed_files/UV*.PNG.*_hap?.bed.merged.bed \
     --bed_output \
     --output_dir $out_dir \
     --modern_vcfs $modern_vcf/chr{chr}.vcf.gz \
-    --archaic_vcfs $altai_vcf/chr{chr}.altai_neand_mpi_minimal_filtered_lowqual.vcf.gz \
+    --archaic_vcfs $deni_vcf/chr{chr}.den_filtered.vcf.gz \
     --canc_correction
-    #--archaic_vcfs $deni_vcf/chr{chr}.den_filtered.vcf.gz \
+    #--archaic_vcfs $altai_vcf/chr{chr}.altai_neand_mpi_minimal_filtered_lowqual.vcf.gz \
     #--modern_vcfs $modern_vcf/merged_rampa_1000g_png_phased_20.05.2017_chr22.vcf.gz \

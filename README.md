@@ -37,14 +37,14 @@ to each chromosome in \[1, 22\]
 Currently only bed output is supported.  Each row corresponds to a row in the
 input bed file.  The columns are:
 1. Chromosome
-2. Start Position
-3. End Position
+2. Start position
+3. End position
 4. Number of entries in the modern VCF within this region.
-5. Number of derived haplotypes within the region
-6. Number of derived haplotypes in the archaic VCF within the region
-7. Number of derived haplotypes in archaic which match a derived haplotype
+5. Number of derived variants within the region
+6. Number of derived variants in the modern VCF joined with archaic
+7. Number of derived variants in the archaic VCF within the region
+8. Number of derived variants in archaic which match a derived variant
 in the modern vcf.
-8. Column 7 divided by column 4
 
 ## License
 

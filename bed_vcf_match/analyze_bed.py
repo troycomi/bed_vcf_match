@@ -35,6 +35,7 @@ class bed_structure():
             out_dir = t[0]
         outfile = os.path.join(out_dir, t[1] + ".matched")
         self.writer = open(outfile, 'w')
+        self.writer.write(summarize_region_header())
 
     def process_chrom(self, chromosome: int, modern_db, archaic_db):
         chrm = str(chromosome)
@@ -81,6 +82,11 @@ def read_bed(reader: TextIO) -> pd.io.parsers.TextFileReader:
                        chunksize=1)
 
 
+def summarize_region_header() -> str:
+    return ('chrom\tstart\tend\ttotal_sites\tmodern_variants\t'
+            'joined_modern_variants\tarchaic_variants\tmatch_variants\n')
+
+
 def summarize_region(bed_line: List[int],
                      haplotype: int,
                      individual: str,
@@ -109,14 +115,10 @@ def summarize_region(bed_line: List[int],
 
     for archaic_vcf in archaic_vcfs:
         joined = join_vcf(rows, archaic_vcf)
+        line += f'\t{np.sum(joined["variant"])}'  # number of variants
         line += f'\t{np.sum(joined["archaic"])/2}'  # number archaic variants
         matches = np.sum(joined['archaic'] * joined['variant'])/2
         line += f'\t{matches}'
-        if sites != 0:
-            fraction = round(matches / sites, 6)
-            line += f'\t{fraction}'
-        else:
-            line += '\tnan'
 
     return line + '\n'
 

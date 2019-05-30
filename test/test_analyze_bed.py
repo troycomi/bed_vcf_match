@@ -214,11 +214,12 @@ def test_summarize_region():
     archaic1 = pd.read_csv(archaic1)
     summary = analyze_bed.summarize_region([1, 99, 120], 1, 'UV2',
                                            modern, archaic1)
-    assert summary == '1\t99\t120\t5\t4\t0.0\t0.0\t0.0\n'
+    assert summary == '1\t99\t120\t5\t4\t4\t0.0\t0.0\n'
+
     # no matches
     summary = analyze_bed.summarize_region([2, 99, 120], 1, 'UV2',
                                            modern, archaic1)
-    assert summary == '2\t99\t120\t0\t0\t0.0\t0.0\tnan\n'
+    assert summary == '2\t99\t120\t0\t0\t0\t0.0\t0.0\n'
 
     # another archaic, with matches
     archaic2 = StringIO(
@@ -230,4 +231,4 @@ def test_summarize_region():
     archaic2 = pd.read_csv(archaic2)
     summary = analyze_bed.summarize_region([1, 99, 120], 1, 'UV2',
                                            modern, archaic1, archaic2)
-    assert summary == '1\t99\t120\t5\t4\t0.0\t0.0\t0.0\t1.5\t1.0\t0.2\n'
+    assert summary == '1\t99\t120\t5\t4\t4\t0.0\t0.0\t4\t1.5\t1.0\n'

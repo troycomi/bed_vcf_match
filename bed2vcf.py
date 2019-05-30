@@ -29,7 +29,7 @@ def main():
     print(f'found {len(indivs)} individuals')
     print(f'found {len(beds)} bed files')
 
-    for chrm in range(1, 23):
+    for chrm in range(22, 23):
         print(f'starting chromosome {chrm}')
         vcf = args.modern_vcfs[0].format(chr=chrm)
         print(os.path.split(vcf)[1], flush=True)
