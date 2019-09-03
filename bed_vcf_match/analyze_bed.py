@@ -96,9 +96,9 @@ def summarize_region(bed_line: List[int],
     Given a line from a bed file, the individual and haplotype,
     look up the corresponding region in the modern vcf database,
     match chromosome, site, and genotype with archaic vcfs.
-    Return the bed line with added columns for the # of sites, number of
-    modern and archaic variants, number of matches and fraction of sites
-    matching for each archaic vcf provided.
+    Return the bed line with added columns for the # of sites in modern vcf,
+    number of modern and archaic variants, number of matches and fraction
+    of sites matching for each archaic vcf provided.
     '''
     rows = filter_modern_db(modern_vcf,
                             bed_line[CHROMOSOME],

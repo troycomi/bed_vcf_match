@@ -40,9 +40,10 @@ input bed file.  The columns are:
 2. Start position
 3. End position
 4. Number of entries in the modern VCF within this region.
-5. Number of derived variants within the region
-6. Number of derived variants in the modern VCF joined with archaic
-7. Number of derived variants in the archaic VCF within the region
+5. Number of derived variants within the region for a haplotype
+6. Number of derived variants in the modern VCF joined with archaic.
+Intersection of sites, not necessarily matching variants. 
+7. Number of derived variants in the archaic VCF within the region (number of alleles/2)
 8. Number of derived variants in archaic which match a derived variant
 in the modern vcf.
 
