@@ -2,6 +2,7 @@ from bed_vcf_match import analyze_bed
 from io import StringIO
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
+import numpy as np
 
 
 def test_read_bed():
@@ -105,14 +106,8 @@ def test_join_vcfs():
         '1,100,UV2,2,0,A,T,1\n'
         '2,200,UV1,1,1,C,G,2\n'
         '2,200,UV1,2,1,C,G,2\n'
-        '3,300,UV2,1,0,T,A,0\n'
-        '3,300,UV2,2,1,T,A,0\n'
-        '3,305,UV2,1,0,G,C,0\n'
-        '3,305,UV2,2,0,G,C,0\n'
         '1,105,UV2,1,1,A,T,0\n'
         '1,105,UV2,2,0,A,T,0\n'
-        '1,110,UV2,1,1,C,G,0\n'
-        '1,110,UV2,2,1,C,G,0\n'
     )
     expected = pd.read_csv(expected)
 
@@ -141,6 +136,7 @@ def test_join_vcfs_with_canc():
         '3,101,UV1,2,1,A,T\n'
         '3,102,UV1,1,0,A,T\n'
         '3,102,UV1,2,1,A,T\n'
+        '3,104,UV1,2,1,A,T\n'
     )
     modern = pd.read_csv(modern)
 
@@ -158,31 +154,23 @@ def test_join_vcfs_with_canc():
     )
     archaic = pd.read_csv(archaic)
 
+    # remove archaic == 0
     expected = StringIO(
         'chrom,pos,individual,haplotype,variant,ref,alt,archaic\n'
-        '1,100,UV1,1,0,A,T,0\n'  # CAnc == ref
-        '1,100,UV1,2,1,A,T,0\n'
         '1,101,UV1,1,1,A,T,2\n'  # CAnc == alt
         '1,101,UV1,2,0,A,T,2\n'
-        '1,102,UV1,1,0,A,T,0\n'  # CAnc == neither
-        '1,102,UV1,2,0,A,T,0\n'
         '2,100,UV1,1,0,A,T,1\n'  # CAnc == ref
         '2,100,UV1,2,1,A,T,1\n'
         '2,101,UV1,1,1,A,T,1\n'  # CAnc == alt
         '2,101,UV1,2,0,A,T,1\n'
-        '2,102,UV1,1,0,A,T,0\n'  # CAnc == neither
-        '2,102,UV1,2,0,A,T,0\n'
         '3,100,UV1,1,0,A,T,2\n'  # CAnc == ref
         '3,100,UV1,2,1,A,T,2\n'
-        '3,101,UV1,1,1,A,T,0\n'  # CAnc == alt
-        '3,101,UV1,2,0,A,T,0\n'
-        '3,102,UV1,1,0,A,T,0\n'  # CAnc == neither
-        '3,102,UV1,2,0,A,T,0\n'
     )
     expected = pd.read_csv(expected)
 
     joined = analyze_bed.join_vcf(modern, archaic)
-    assert_frame_equal(joined, expected)
+    print(joined)
+    assert np.array_equal(joined.values, expected.values)
 
 
 def test_summarize_region():
@@ -198,12 +186,12 @@ def test_summarize_region():
 
     # no archaic, just match number of sites and variants
     summary = analyze_bed.summarize_region([1, 99, 120], 1, 'UV2', modern)
-    assert summary == '1\t99\t120\t5\t4\n'
+    assert summary == '1\t99\t120\n'
     summary = analyze_bed.summarize_region([1, 99, 120], 2, 'UV2', modern)
-    assert summary == '1\t99\t120\t5\t2\n'
+    assert summary == '1\t99\t120\n'
     # no matches
     summary = analyze_bed.summarize_region([2, 99, 120], 2, 'UV2', modern)
-    assert summary == '2\t99\t120\t0\t0\n'
+    assert summary == '2\t99\t120\n'
 
     # one archaic, no matches
     archaic1 = StringIO(
@@ -214,12 +202,12 @@ def test_summarize_region():
     archaic1 = pd.read_csv(archaic1)
     summary = analyze_bed.summarize_region([1, 99, 120], 1, 'UV2',
                                            modern, archaic1)
-    assert summary == '1\t99\t120\t5\t4\t4\t0.0\t0.0\n'
+    assert summary == '1\t99\t120\t0\t0\t0.0\t0.0\n'
 
     # no matches
     summary = analyze_bed.summarize_region([2, 99, 120], 1, 'UV2',
                                            modern, archaic1)
-    assert summary == '2\t99\t120\t0\t0\t0\t0.0\t0.0\n'
+    assert summary == '2\t99\t120\t0\t0\t0.0\t0.0\n'
 
     # another archaic, with matches
     archaic2 = StringIO(
@@ -231,4 +219,4 @@ def test_summarize_region():
     archaic2 = pd.read_csv(archaic2)
     summary = analyze_bed.summarize_region([1, 99, 120], 1, 'UV2',
                                            modern, archaic1, archaic2)
-    assert summary == '1\t99\t120\t5\t4\t4\t0.0\t0.0\t4\t1.5\t1.0\n'
+    assert summary == '1\t99\t120\t0\t0\t0.0\t0.0\t3\t2\t1.5\t1.0\n'

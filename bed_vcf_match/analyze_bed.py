@@ -83,8 +83,8 @@ def read_bed(reader: TextIO) -> pd.io.parsers.TextFileReader:
 
 
 def summarize_region_header() -> str:
-    return ('chrom\tstart\tend\ttotal_sites\tmodern_variants\t'
-            'joined_modern_variants\tarchaic_variants\tmatch_variants\n')
+    return ('chrom\tstart\tend\tsites\tmodern_variants\t'
+            'archaic_variants\tmatch_variants\n')
 
 
 def summarize_region(bed_line: List[int],
@@ -109,13 +109,11 @@ def summarize_region(bed_line: List[int],
 
     # same for each archaic vcf
     line = '\t'.join([str(b) for b in bed_line])
-    sites = len(rows)
-    line += f'\t{sites}'  # number of sites
-    line += f'\t{np.sum(rows["variant"])}'  # number of variants
 
     for archaic_vcf in archaic_vcfs:
         joined = join_vcf(rows, archaic_vcf)
-        line += f'\t{np.sum(joined["variant"])}'  # number of variants
+        line += f'\t{len(joined.index)}'  # number of sites
+        line += f'\t{np.sum(joined["variant"])}'  # number of modern variants
         line += f'\t{np.sum(joined["archaic"])/2}'  # number archaic variants
         matches = np.sum(joined['archaic'] * joined['variant'])/2
         line += f'\t{matches}'
@@ -152,22 +150,20 @@ def filter_modern_db(modern_vcf: pd.DataFrame,
 def join_vcf(modern: pd.DataFrame, archaic: pd.DataFrame) -> pd.DataFrame:
     '''
     Merge the modern and archaic vcf dataframes, adding a new column of the
-    archaic variant to the modern vcf.  If the chrom, pos, ref and alt do not
-    match, a 0 is inserted.
+    archaic variant to the modern vcf.
     '''
     joined = pd.merge(modern,
                       archaic.rename(index=str,
                                      columns={'variant': 'archaic'}),
-                      how='left',
+                      how='inner',
                       on=['chrom', 'pos', 'ref', 'alt'])
-    joined.fillna(0, inplace=True)
-    # TODO add in canc filtering here if it is a column in result
     if 'CAnc' in joined.columns:
         match_alt = joined.CAnc == joined.alt
         joined.loc[match_alt, 'archaic'] = 2 - joined.loc[match_alt, 'archaic']
         joined.loc[match_alt, 'variant'] = 1 - joined.loc[match_alt, 'variant']
-        match_neither = (joined.CAnc != joined.alt) & \
-            (joined.CAnc != joined.ref)
-        joined.loc[match_neither, ['archaic', 'variant']] = 0
+        match_either = (joined.CAnc == joined.alt) | \
+            (joined.CAnc == joined.ref)
+        joined = joined.loc[match_either]
+        joined = joined.loc[joined['archaic'] != 0]
         joined = joined.drop(columns='CAnc')
     return joined.astype({'archaic': int})

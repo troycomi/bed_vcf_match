@@ -39,13 +39,16 @@ input bed file.  The columns are:
 1. Chromosome
 2. Start position
 3. End position
-4. Number of entries in the modern VCF within this region.
-5. Number of derived variants within the region for a haplotype
-6. Number of derived variants in the modern VCF joined with archaic.
-Intersection of sites, not necessarily matching variants. 
-7. Number of derived variants in the archaic VCF within the region (number of alleles/2)
-8. Number of derived variants in archaic which match a derived variant
+4. Number of informative sites within this region.
+5. Number of derived, informative sites for the haplotype
+6. Number of derived, informative sites for the archaic VCF within the region
+(number of alleles/2)
+7. Number of derived variants in archaic which match a derived variant
 in the modern vcf.
+
+Informative sites are those with Canc information in the archaic VCF, the Canc
+is equal to reference or alternative allele, and the archaic VCF has a derived
+allele.
 
 ## License
 
